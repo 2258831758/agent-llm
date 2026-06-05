@@ -2,255 +2,885 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
-  <title>AuditPilot - Code Audit Agent</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AuditPilot Local Console</title>
   <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #0f172a;
-      color: #e5e7eb;
+    :root {
+      --bg: #f4efe6;
+      --panel: rgba(255, 250, 242, 0.9);
+      --line: rgba(68, 52, 31, 0.14);
+      --ink: #23180c;
+      --muted: #6f6556;
+      --accent: #0f766e;
+      --accent-strong: #115e59;
+      --danger: #b42318;
+      --warn: #b54708;
+      --ok: #087443;
+      --shadow: 0 28px 64px rgba(35, 24, 12, 0.12);
     }
 
-    .app {
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Trebuchet MS", "Segoe UI", "Microsoft YaHei", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top left, rgba(15, 118, 110, 0.18), transparent 26%),
+        radial-gradient(circle at top right, rgba(181, 71, 8, 0.14), transparent 22%),
+        linear-gradient(180deg, #fbf7f1 0%, var(--bg) 100%);
+    }
+
+    .shell {
+      width: min(1440px, calc(100% - 32px));
+      margin: 24px auto;
       display: grid;
-      grid-template-columns: 240px 1fr 340px;
-      height: 100vh;
+      grid-template-columns: 300px 1fr;
+      gap: 20px;
+    }
+
+    .sidebar,
+    .surface {
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
     }
 
     .sidebar {
-      background: #020617;
-      padding: 24px;
-      border-right: 1px solid #1e293b;
+      padding: 28px;
+      position: sticky;
+      top: 24px;
+      align-self: start;
     }
 
-    .logo {
-      font-size: 24px;
-      font-weight: bold;
-      margin-bottom: 36px;
-      color: #38bdf8;
-    }
-
-    .nav-item {
-      padding: 14px;
-      margin-bottom: 10px;
-      border-radius: 10px;
-      cursor: pointer;
-      color: #94a3b8;
-    }
-
-    .nav-item.active,
-    .nav-item:hover {
-      background: #1e293b;
-      color: white;
-    }
-
-    .main {
-      padding: 32px;
-      overflow-y: auto;
-    }
-
-    .header h1 {
-      margin: 0;
-      font-size: 30px;
-    }
-
-    .header p {
-      color: #94a3b8;
-    }
-
-    .card {
-      background: #111827;
-      border: 1px solid #1f2937;
-      border-radius: 18px;
-      padding: 24px;
-      margin-top: 24px;
-    }
-
-    .upload-box {
-      border: 2px dashed #334155;
-      border-radius: 16px;
-      padding: 50px;
-      text-align: center;
-      background: #020617;
-    }
-
-    .upload-box:hover {
-      border-color: #38bdf8;
-    }
-
-    .upload-box input {
-      display: none;
-    }
-
-    .btn {
-      margin-top: 20px;
-      padding: 12px 22px;
-      border: none;
-      border-radius: 10px;
-      background: #38bdf8;
-      color: #020617;
-      font-weight: bold;
-      cursor: pointer;
-    }
-
-    .btn.secondary {
-      background: #1e293b;
-      color: white;
-    }
-
-    .config-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 18px;
-    }
-
-    .config-item label {
-      display: block;
-      margin-bottom: 8px;
-      color: #94a3b8;
-    }
-
-    select, input[type="text"] {
-      width: 100%;
-      padding: 12px;
-      background: #020617;
-      border: 1px solid #334155;
-      border-radius: 10px;
-      color: white;
-    }
-
-    .right-panel {
-      background: #020617;
-      padding: 24px;
-      border-left: 1px solid #1e293b;
-    }
-
-    .agent-box {
-      background: #111827;
-      border-radius: 16px;
-      padding: 18px;
-      margin-bottom: 18px;
-      border: 1px solid #1f2937;
-    }
-
-    .risk {
+    .brand {
       display: flex;
-      justify-content: space-between;
-      margin: 10px 0;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 26px;
     }
 
-    .high { color: #f87171; }
-    .medium { color: #facc15; }
-    .low { color: #4ade80; }
+    .brand-mark {
+      width: 54px;
+      height: 54px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, #0f766e, #e76f51);
+      color: white;
+      display: grid;
+      place-items: center;
+      font-size: 24px;
+      font-weight: 700;
+    }
 
-    .log {
-      font-size: 14px;
-      color: #94a3b8;
+    .brand small,
+    .section-note,
+    .muted {
+      color: var(--muted);
+    }
+
+    .nav-chip {
+      display: inline-flex;
+      align-items: center;
+      margin: 0 8px 10px 0;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(15, 118, 110, 0.08);
+      color: var(--accent-strong);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .hero {
+      padding: 30px;
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 20px;
+      border-bottom: 1px solid var(--line);
+      background:
+        linear-gradient(120deg, rgba(15, 118, 110, 0.08), rgba(231, 111, 81, 0.06)),
+        rgba(255, 250, 242, 0.9);
+    }
+
+    .hero h1 {
+      margin: 0 0 10px;
+      font-size: clamp(30px, 3vw, 48px);
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+    }
+
+    .hero p {
+      margin: 0;
+      max-width: 700px;
+      color: var(--muted);
       line-height: 1.7;
     }
 
-    .status {
-      color: #4ade80;
-      font-weight: bold;
+    .hero-stats {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .stat-card,
+    .panel,
+    .status-card {
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: rgba(255, 255, 255, 0.65);
+    }
+
+    .stat-card {
+      padding: 18px;
+    }
+
+    .stat-card span {
+      display: block;
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+
+    .stat-card strong {
+      font-size: 28px;
+    }
+
+    .content {
+      padding: 24px 30px 30px;
+      display: grid;
+      gap: 18px;
+    }
+
+    .panel {
+      padding: 22px;
+    }
+
+    .panel h2,
+    .panel h3,
+    .sidebar h2,
+    .sidebar h3 {
+      margin: 0 0 14px;
+    }
+
+    .grid {
+      display: grid;
+      gap: 14px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .field {
+      display: grid;
+      gap: 8px;
+    }
+
+    .field label {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--muted);
+    }
+
+    input[type="text"],
+    input[type="file"] {
+      width: 100%;
+      padding: 13px 14px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.82);
+      color: var(--ink);
+      font: inherit;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 8px;
+    }
+
+    button,
+    .link-button {
+      border: none;
+      border-radius: 999px;
+      padding: 12px 18px;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 140ms ease, box-shadow 140ms ease, opacity 140ms ease;
+      text-decoration: none;
+    }
+
+    button:hover,
+    .link-button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 14px 28px rgba(35, 24, 12, 0.12);
+    }
+
+    .primary {
+      background: linear-gradient(135deg, #0f766e, #115e59);
+      color: white;
+    }
+
+    .secondary {
+      background: rgba(15, 118, 110, 0.1);
+      color: var(--accent-strong);
+    }
+
+    .ghost {
+      background: rgba(35, 24, 12, 0.06);
+      color: var(--ink);
+    }
+
+    button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .status-list,
+    .summary-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .status-card,
+    .summary-item {
+      padding: 14px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      background: rgba(35, 24, 12, 0.08);
+    }
+
+    .badge.ok {
+      background: rgba(8, 116, 67, 0.12);
+      color: var(--ok);
+    }
+
+    .badge.warn {
+      background: rgba(181, 71, 8, 0.12);
+      color: var(--warn);
+    }
+
+    .badge.error {
+      background: rgba(180, 35, 24, 0.12);
+      color: var(--danger);
+    }
+
+    .progress-track {
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(35, 24, 12, 0.08);
+      overflow: hidden;
+      margin-top: 10px;
+    }
+
+    .progress-bar {
+      height: 100%;
+      width: 0;
+      background: linear-gradient(90deg, #0f766e, #e76f51);
+      transition: width 180ms ease;
+    }
+
+    .findings-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+
+    .findings-table th,
+    .findings-table td {
+      padding: 12px 10px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+      font-size: 14px;
+    }
+
+    .severity-pill {
+      display: inline-block;
+      min-width: 72px;
+      text-align: center;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      color: white;
+    }
+
+    .severity-high,
+    .severity-critical {
+      background: var(--danger);
+    }
+
+    .severity-medium {
+      background: var(--warn);
+    }
+
+    .severity-low {
+      background: #1565c0;
+    }
+
+    .log-box {
+      min-height: 220px;
+      max-height: 380px;
+      overflow: auto;
+      padding: 14px;
+      border-radius: 18px;
+      background: #1f1a15;
+      color: #f8eee0;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 13px;
+      line-height: 1.65;
+      white-space: pre-wrap;
+    }
+
+    .report-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 8px 0 14px;
+    }
+
+    .report-frame {
+      width: 100%;
+      min-height: 420px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: white;
+    }
+
+    .empty {
+      padding: 16px;
+      border-radius: 18px;
+      background: rgba(35, 24, 12, 0.04);
+      color: var(--muted);
+    }
+
+    @media (max-width: 1100px) {
+      .shell {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        position: static;
+      }
+
+      .hero {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .grid,
+      .hero-stats {
+        grid-template-columns: 1fr;
+      }
+
+      .shell {
+        width: min(100% - 16px, 1440px);
+        margin: 8px auto 24px;
+      }
+
+      .sidebar,
+      .hero,
+      .content {
+        padding-left: 18px;
+        padding-right: 18px;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="app">
+  <div class="shell">
     <aside class="sidebar">
-      <div class="logo">AuditPilot</div>
-      <div class="nav-item active">代码审计</div>
-      <div class="nav-item">容器上传</div>
-      <div class="nav-item">审计报告</div>
-      <div class="nav-item">历史任务</div>
-      <div class="nav-item">设置</div>
+      <div class="brand">
+        <div class="brand-mark">A</div>
+        <div>
+          <strong>AuditPilot</strong>
+          <div class="muted">Local Control Panel</div>
+        </div>
+      </div>
+      <div class="nav-chip">Unified Dev Flow</div>
+      <div class="nav-chip">FastAPI + Web UI</div>
+      <div class="nav-chip">Redis Events</div>
+
+      <h3>运行入口</h3>
+      <p class="section-note">前端默认在 <code>http://127.0.0.1:3000</code>，后端默认在 <code>http://127.0.0.1:8000</code>。</p>
+      <div class="status-list">
+        <div class="status-card">
+          <span>后端健康</span>
+          <span id="backendHealth" class="badge warn">未检查</span>
+        </div>
+        <div class="status-card">
+          <span>数据库</span>
+          <span id="databaseHealth" class="badge warn">未检查</span>
+        </div>
+        <div class="status-card">
+          <span>Redis</span>
+          <span id="redisHealth" class="badge warn">未检查</span>
+        </div>
+      </div>
+
+      <h3 style="margin-top: 24px;">当前任务</h3>
+      <div class="summary-list">
+        <div class="summary-item">
+          <span>Task ID</span>
+          <strong id="taskIdLabel">-</strong>
+        </div>
+        <div class="summary-item">
+          <span>状态</span>
+          <strong id="taskStatusLabel">未开始</strong>
+        </div>
+        <div class="summary-item">
+          <span>进度</span>
+          <strong id="taskProgressLabel">0%</strong>
+        </div>
+      </div>
+
+      <div class="progress-track">
+        <div id="progressBar" class="progress-bar"></div>
+      </div>
+
+      <div style="margin-top: 18px;">
+        <button id="refreshHealthBtn" class="ghost" type="button">重新检查后端</button>
+      </div>
     </aside>
 
-    <main class="main">
-      <div class="header">
-        <h1>代码审计 Agent</h1>
-        <p>上传项目文件到容器，自动分析漏洞、危险函数、依赖风险和敏感信息。</p>
-      </div>
-
-      <section class="card">
-        <h2>上传代码文件</h2>
-        <div class="upload-box">
-          <p>拖拽项目压缩包 / 源码文件到这里</p>
-          <p>支持 .zip / .tar.gz / .py / .js / .php / .java / .go</p>
-          <label>
-            <button class="btn secondary">选择文件</button>
-            <input type="file" multiple />
-          </label>
+    <section class="surface">
+      <div class="hero">
+        <div>
+          <h1>用一个页面把上传、审计、日志和报告串起来</h1>
+          <p>这个页面会直接调用后端的上传接口、启动 LangGraph 审计流程、订阅 WebSocket 事件，并在任务完成后展示漏洞结果和报告预览。</p>
         </div>
-      </section>
-
-      <section class="card">
-        <h2>容器配置</h2>
-        <div class="config-grid">
-          <div class="config-item">
-            <label>运行环境</label>
-            <select>
-              <option>Python / Node / PHP 自动识别</option>
-              <option>Python 3.11</option>
-              <option>Node.js 20</option>
-              <option>PHP 8.2</option>
-              <option>Go 1.22</option>
-            </select>
+        <div class="hero-stats">
+          <div class="stat-card">
+            <span>高危</span>
+            <strong id="highCount">0</strong>
           </div>
-
-          <div class="config-item">
-            <label>审计模式</label>
-            <select>
-              <option>标准审计</option>
-              <option>深度审计</option>
-              <option>CTF / Pwn 辅助分析</option>
-              <option>Web 漏洞审计</option>
-            </select>
+          <div class="stat-card">
+            <span>中危</span>
+            <strong id="mediumCount">0</strong>
           </div>
-
-          <div class="config-item">
-            <label>项目路径</label>
-            <input type="text" placeholder="/workspace/project" />
+          <div class="stat-card">
+            <span>低危</span>
+            <strong id="lowCount">0</strong>
           </div>
-
-          <div class="config-item">
-            <label>报告格式</label>
-            <select>
-              <option>Markdown</option>
-              <option>HTML</option>
-              <option>PDF</option>
-              <option>JSON</option>
-            </select>
+          <div class="stat-card">
+            <span>漏洞总数</span>
+            <strong id="totalCount">0</strong>
           </div>
         </div>
-
-        <button class="btn">启动代码审计</button>
-      </section>
-    </main>
-
-    <aside class="right-panel">
-      <div class="agent-box">
-        <h3>Agent 状态</h3>
-        <p>容器状态：<span class="status">Ready</span></p>
-        <p>当前任务：等待上传</p>
       </div>
 
-      <div class="agent-box">
-        <h3>风险统计</h3>
-        <div class="risk"><span>高危漏洞</span><span class="high">0</span></div>
-        <div class="risk"><span>中危漏洞</span><span class="medium">0</span></div>
-        <div class="risk"><span>低危风险</span><span class="low">0</span></div>
-      </div>
+      <div class="content">
+        <section class="panel">
+          <h2>连接配置</h2>
+          <div class="grid">
+            <div class="field">
+              <label for="apiBaseInput">后端 API 地址</label>
+              <input id="apiBaseInput" type="text" value="http://127.0.0.1:8000/api/v1" />
+            </div>
+            <div class="field">
+              <label for="taskNameInput">任务名称</label>
+              <input id="taskNameInput" type="text" value="local-web-audit" />
+            </div>
+            <div class="field">
+              <label for="userIdInput">用户 ID</label>
+              <input id="userIdInput" type="text" placeholder="留空使用默认用户" />
+            </div>
+            <div class="field">
+              <label for="fileInput">上传源码或压缩包</label>
+              <input id="fileInput" type="file" />
+            </div>
+          </div>
 
-      <div class="agent-box">
-        <h3>Agent 日志</h3>
-        <div class="log">
-          [Agent] 等待文件上传...<br>
-          [Container] 沙箱环境已初始化<br>
-          [Audit] 规则引擎加载完成<br>
-        </div>
+          <div class="actions">
+            <button id="uploadBtn" class="secondary" type="button">上传本地文件</button>
+            <button id="demoBtn" class="ghost" type="button">导入示例项目</button>
+            <button id="startBtn" class="primary" type="button" disabled>启动审计</button>
+            <button id="docsBtn" class="ghost" type="button">打开 Swagger</button>
+          </div>
+          <p class="section-note">“导入示例项目”会调用后端的 demo 上传接口，把仓库里的 <code>examples/vulnerable_python_app</code> 自动打包后送进审计流程。</p>
+        </section>
+
+        <section class="panel">
+          <h2>实时日志</h2>
+          <div id="logBox" class="log-box">[system] 等待任务开始…</div>
+        </section>
+
+        <section class="panel">
+          <h2>漏洞结果</h2>
+          <div id="findingsWrap" class="empty">任务完成后，这里会展示审计结果。</div>
+        </section>
+
+        <section class="panel">
+          <h2>报告预览</h2>
+          <div id="reportWrap" class="empty">任务完成后，这里会生成 HTML / Markdown / JSON 报告链接。</div>
+        </section>
       </div>
-    </aside>
+    </section>
   </div>
+
+  <script>
+    const state = {
+      taskId: null,
+      taskStatus: "未开始",
+      progress: 0,
+      socket: null,
+      pollTimer: null,
+      logs: ["[system] 等待任务开始…"],
+    };
+
+    const elements = {
+      apiBaseInput: document.getElementById("apiBaseInput"),
+      taskNameInput: document.getElementById("taskNameInput"),
+      userIdInput: document.getElementById("userIdInput"),
+      fileInput: document.getElementById("fileInput"),
+      uploadBtn: document.getElementById("uploadBtn"),
+      demoBtn: document.getElementById("demoBtn"),
+      startBtn: document.getElementById("startBtn"),
+      docsBtn: document.getElementById("docsBtn"),
+      refreshHealthBtn: document.getElementById("refreshHealthBtn"),
+      backendHealth: document.getElementById("backendHealth"),
+      databaseHealth: document.getElementById("databaseHealth"),
+      redisHealth: document.getElementById("redisHealth"),
+      taskIdLabel: document.getElementById("taskIdLabel"),
+      taskStatusLabel: document.getElementById("taskStatusLabel"),
+      taskProgressLabel: document.getElementById("taskProgressLabel"),
+      progressBar: document.getElementById("progressBar"),
+      highCount: document.getElementById("highCount"),
+      mediumCount: document.getElementById("mediumCount"),
+      lowCount: document.getElementById("lowCount"),
+      totalCount: document.getElementById("totalCount"),
+      logBox: document.getElementById("logBox"),
+      findingsWrap: document.getElementById("findingsWrap"),
+      reportWrap: document.getElementById("reportWrap"),
+    };
+
+    function apiBase() {
+      return elements.apiBaseInput.value.replace(/\/+$/, "");
+    }
+
+    function appendLog(message) {
+      const stamped = `[${new Date().toLocaleTimeString()}] ${message}`;
+      state.logs.push(stamped);
+      state.logs = state.logs.slice(-160);
+      elements.logBox.textContent = state.logs.join("\n");
+      elements.logBox.scrollTop = elements.logBox.scrollHeight;
+    }
+
+    function setBadge(element, text, level) {
+      element.textContent = text;
+      element.className = `badge ${level}`;
+    }
+
+    function setTaskMeta() {
+      elements.taskIdLabel.textContent = state.taskId || "-";
+      elements.taskStatusLabel.textContent = state.taskStatus;
+      elements.taskProgressLabel.textContent = `${state.progress}%`;
+      elements.progressBar.style.width = `${state.progress}%`;
+      elements.startBtn.disabled = !state.taskId || state.taskStatus === "running";
+    }
+
+    function updateRiskStats(findings) {
+      const counters = { HIGH: 0, MEDIUM: 0, LOW: 0 };
+      for (const item of findings) {
+        const key = String(item.severity || "").toUpperCase();
+        if (counters[key] !== undefined) {
+          counters[key] += 1;
+        }
+      }
+      elements.highCount.textContent = counters.HIGH;
+      elements.mediumCount.textContent = counters.MEDIUM;
+      elements.lowCount.textContent = counters.LOW;
+      elements.totalCount.textContent = findings.length;
+    }
+
+    function renderFindings(findings) {
+      if (!findings.length) {
+        elements.findingsWrap.className = "empty";
+        elements.findingsWrap.innerHTML = "当前任务没有检测到漏洞，或者还没有完成扫描。";
+        updateRiskStats([]);
+        return;
+      }
+
+      updateRiskStats(findings);
+      const rows = findings.map((item) => {
+        const severity = String(item.severity || "").toLowerCase();
+        return `
+          <tr>
+            <td><span class="severity-pill severity-${severity}">${item.severity}</span></td>
+            <td><strong>${item.title}</strong><div class="muted">${item.description}</div></td>
+            <td>${item.source}</td>
+            <td>${item.file_path}:${item.line_number}</td>
+            <td>${item.cvss_score}</td>
+          </tr>
+        `;
+      }).join("");
+
+      elements.findingsWrap.className = "";
+      elements.findingsWrap.innerHTML = `
+        <table class="findings-table">
+          <thead>
+            <tr>
+              <th>风险</th>
+              <th>标题</th>
+              <th>来源</th>
+              <th>位置</th>
+              <th>CVSS</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      `;
+    }
+
+    function renderReports(taskId) {
+      const htmlUrl = `${apiBase()}/report/${taskId}?format=html`;
+      const markdownUrl = `${apiBase()}/report/${taskId}?format=markdown`;
+      const jsonUrl = `${apiBase()}/report/${taskId}?format=json`;
+
+      elements.reportWrap.className = "";
+      elements.reportWrap.innerHTML = `
+        <div class="report-links">
+          <a class="link-button ghost" href="${htmlUrl}" target="_blank" rel="noreferrer">打开 HTML 报告</a>
+          <a class="link-button ghost" href="${markdownUrl}" target="_blank" rel="noreferrer">下载 Markdown</a>
+          <a class="link-button ghost" href="${jsonUrl}" target="_blank" rel="noreferrer">下载 JSON</a>
+        </div>
+        <iframe class="report-frame" src="${htmlUrl}" title="Audit Report Preview"></iframe>
+      `;
+    }
+
+    function stopPolling() {
+      if (state.pollTimer) {
+        clearInterval(state.pollTimer);
+        state.pollTimer = null;
+      }
+    }
+
+    function closeSocket() {
+      if (state.socket) {
+        state.socket.close();
+        state.socket = null;
+      }
+    }
+
+    async function fetchJson(url, options = {}) {
+      const response = await fetch(url, options);
+      if (!response.ok) {
+        const fallback = `${response.status} ${response.statusText}`;
+        let detail = fallback;
+        try {
+          const payload = await response.json();
+          detail = payload.detail || JSON.stringify(payload);
+        } catch {
+          detail = await response.text() || fallback;
+        }
+        throw new Error(detail);
+      }
+      return response.json();
+    }
+
+    async function refreshHealth() {
+      try {
+        const data = await fetchJson(`${apiBase()}/health`);
+        setBadge(elements.backendHealth, data.app, "ok");
+        setBadge(elements.databaseHealth, data.database, data.database === "ok" ? "ok" : "error");
+        setBadge(elements.redisHealth, data.redis, data.redis === "ok" ? "ok" : "error");
+        appendLog("[health] 后端连接正常");
+      } catch (error) {
+        setBadge(elements.backendHealth, "连接失败", "error");
+        setBadge(elements.databaseHealth, "未知", "warn");
+        setBadge(elements.redisHealth, "未知", "warn");
+        appendLog(`[health] ${error.message}`);
+      }
+    }
+
+    function rememberTask(taskId, status) {
+      state.taskId = taskId;
+      state.taskStatus = status;
+      state.progress = 0;
+      renderFindings([]);
+      elements.reportWrap.className = "empty";
+      elements.reportWrap.innerHTML = "任务完成后，这里会生成 HTML / Markdown / JSON 报告链接。";
+      setTaskMeta();
+    }
+
+    async function uploadFile() {
+      const file = elements.fileInput.files[0];
+      if (!file) {
+        appendLog("[upload] 请先选择一个文件");
+        return;
+      }
+
+      const form = new FormData();
+      form.append("file", file);
+      form.append("task_name", elements.taskNameInput.value.trim() || file.name);
+      if (elements.userIdInput.value.trim()) {
+        form.append("user_id", elements.userIdInput.value.trim());
+      }
+
+      try {
+        elements.uploadBtn.disabled = true;
+        const data = await fetchJson(`${apiBase()}/upload`, {
+          method: "POST",
+          body: form,
+        });
+        rememberTask(data.task_id, data.status);
+        appendLog(`[upload] 已上传 ${data.upload_name}，task_id=${data.task_id}`);
+      } catch (error) {
+        appendLog(`[upload] ${error.message}`);
+      } finally {
+        elements.uploadBtn.disabled = false;
+      }
+    }
+
+    async function uploadDemoProject() {
+      const form = new FormData();
+      form.append("task_name", elements.taskNameInput.value.trim() || "demo-audit");
+      if (elements.userIdInput.value.trim()) {
+        form.append("user_id", elements.userIdInput.value.trim());
+      }
+
+      try {
+        elements.demoBtn.disabled = true;
+        const data = await fetchJson(`${apiBase()}/upload/demo`, {
+          method: "POST",
+          body: form,
+        });
+        rememberTask(data.task_id, data.status);
+        appendLog(`[demo] 已导入示例项目 ${data.upload_name}，task_id=${data.task_id}`);
+      } catch (error) {
+        appendLog(`[demo] ${error.message}`);
+      } finally {
+        elements.demoBtn.disabled = false;
+      }
+    }
+
+    function connectSocket(taskId) {
+      closeSocket();
+      const wsUrl = apiBase().replace(/^http/i, "ws") + `/ws/audit/${taskId}`;
+      state.socket = new WebSocket(wsUrl);
+
+      state.socket.onopen = () => appendLog("[ws] 已连接实时日志通道");
+      state.socket.onclose = () => appendLog("[ws] 实时日志通道已关闭");
+      state.socket.onerror = () => appendLog("[ws] WebSocket 连接出现异常");
+      state.socket.onmessage = (event) => {
+        try {
+          const payload = JSON.parse(event.data);
+          if (payload.event === "progress" && typeof payload.value === "number") {
+            state.progress = payload.value;
+            if (payload.message) {
+              appendLog(`[progress] ${payload.value}% ${payload.message}`);
+            }
+            setTaskMeta();
+            return;
+          }
+          if (payload.event === "agent") {
+            appendLog(`[agent] ${payload.agent} -> ${payload.status} ${payload.message || ""}`.trim());
+            return;
+          }
+          if (payload.message) {
+            appendLog(`[event] ${payload.message}`);
+          }
+        } catch (error) {
+          appendLog(`[ws] 事件解析失败: ${error.message}`);
+        }
+      };
+    }
+
+    async function loadTaskResult() {
+      if (!state.taskId) {
+        return;
+      }
+
+      try {
+        const task = await fetchJson(`${apiBase()}/audit/${state.taskId}`);
+        state.taskStatus = task.status;
+        if (task.status === "completed") {
+          state.progress = 100;
+        }
+        setTaskMeta();
+        renderFindings(task.findings || []);
+
+        if (task.status === "completed") {
+          renderReports(task.id);
+          stopPolling();
+        } else if (task.status === "failed") {
+          stopPolling();
+        }
+      } catch (error) {
+        appendLog(`[result] ${error.message}`);
+        stopPolling();
+      }
+    }
+
+    function beginPolling() {
+      stopPolling();
+      state.pollTimer = setInterval(loadTaskResult, 1800);
+    }
+
+    async function startAudit() {
+      if (!state.taskId) {
+        appendLog("[audit] 请先上传文件或导入示例项目");
+        return;
+      }
+
+      try {
+        elements.startBtn.disabled = true;
+        const payload = await fetchJson(`${apiBase()}/audit/start`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ task_id: state.taskId }),
+        });
+        state.taskStatus = payload.status;
+        state.progress = 5;
+        setTaskMeta();
+        appendLog(`[audit] 审计已启动，task_id=${payload.task_id}`);
+        connectSocket(payload.task_id);
+        beginPolling();
+        await loadTaskResult();
+      } catch (error) {
+        appendLog(`[audit] ${error.message}`);
+      } finally {
+        setTaskMeta();
+      }
+    }
+
+    function openDocs() {
+      const docsUrl = apiBase().replace(/\/api\/v1$/, "") + "/docs";
+      window.open(docsUrl, "_blank", "noopener,noreferrer");
+    }
+
+    elements.uploadBtn.addEventListener("click", uploadFile);
+    elements.demoBtn.addEventListener("click", uploadDemoProject);
+    elements.startBtn.addEventListener("click", startAudit);
+    elements.docsBtn.addEventListener("click", openDocs);
+    elements.refreshHealthBtn.addEventListener("click", refreshHealth);
+
+    window.addEventListener("beforeunload", () => {
+      stopPolling();
+      closeSocket();
+    });
+
+    setTaskMeta();
+    refreshHealth();
+  </script>
 </body>
 </html>

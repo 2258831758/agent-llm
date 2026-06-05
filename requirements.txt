@@ -1,0 +1,11 @@
+fastapi==0.115.13
+jinja2==3.1.6
+langgraph==1.2.4
+pydantic==2.13.4
+pydantic-settings==2.14.1
+psycopg[binary]==3.2.9
+pymysql==1.1.1
+python-multipart==0.0.20
+redis==6.2.0
+sqlalchemy==2.0.50
+uvicorn==0.34.3

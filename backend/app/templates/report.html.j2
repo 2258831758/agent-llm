@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ payload.report_title }}</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f5f7fb;
+        --panel: #ffffff;
+        --ink: #162033;
+        --muted: #5f6b85;
+        --line: #dbe3f0;
+        --accent: #0f766e;
+        --high: #b91c1c;
+        --medium: #b45309;
+        --low: #2563eb;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+        background: radial-gradient(circle at top, #eef4ff, var(--bg));
+        color: var(--ink);
+      }
+
+      main {
+        max-width: 980px;
+        margin: 40px auto;
+        padding: 0 20px 40px;
+      }
+
+      .hero,
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        box-shadow: 0 18px 48px rgba(15, 23, 42, 0.06);
+      }
+
+      .hero {
+        padding: 28px;
+        margin-bottom: 24px;
+      }
+
+      .meta {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 14px;
+        margin-top: 20px;
+      }
+
+      .metric {
+        padding: 16px;
+        border-radius: 14px;
+        background: #f8fafc;
+      }
+
+      .label {
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .value {
+        font-size: 26px;
+        font-weight: 700;
+        margin-top: 4px;
+      }
+
+      .card {
+        padding: 22px;
+        margin-bottom: 16px;
+      }
+
+      .severity {
+        display: inline-block;
+        border-radius: 999px;
+        padding: 4px 10px;
+        font-size: 12px;
+        font-weight: 700;
+        color: white;
+      }
+
+      .severity.HIGH,
+      .severity.CRITICAL {
+        background: var(--high);
+      }
+
+      .severity.MEDIUM {
+        background: var(--medium);
+      }
+
+      .severity.LOW {
+        background: var(--low);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="hero">
+        <h1>{{ payload.task_name }}</h1>
+        <p>{{ payload.labels.task_id }}: {{ payload.task_id }}</p>
+        <div class="meta">
+          <div class="metric">
+            <div class="label">{{ payload.labels.language }}</div>
+            <div class="value">{{ payload.language or "未知" }}</div>
+          </div>
+          <div class="metric">
+            <div class="label">{{ payload.labels.framework }}</div>
+            <div class="value">{{ payload.framework or "未知" }}</div>
+          </div>
+          <div class="metric">
+            <div class="label">{{ payload.labels.total }}</div>
+            <div class="value">{{ payload.summary.total }}</div>
+          </div>
+          <div class="metric">
+            <div class="label">{{ payload.labels.high }}</div>
+            <div class="value">{{ payload.summary.high }}</div>
+          </div>
+        </div>
+      </section>
+
+      {% for item in payload.findings %}
+      <section class="card">
+        <span class="severity {{ item.severity }}">{{ item.severity_label }}</span>
+        <h2>{{ item.title }}</h2>
+        <p>{{ item.description }}</p>
+        <p><strong>{{ payload.labels.source }}：</strong> {{ item.source }}</p>
+        <p><strong>{{ payload.labels.location }}：</strong> {{ item.file_path }}:{{ item.line_number }}</p>
+        <p><strong>CVSS：</strong> {{ item.cvss_score }}</p>
+      </section>
+      {% else %}
+      <section class="card">
+        <h2>未发现漏洞</h2>
+        <p>本次扫描未识别到有效风险项。</p>
+      </section>
+      {% endfor %}
+    </main>
+  </body>
+</html>
