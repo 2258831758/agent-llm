@@ -9,14 +9,17 @@ def scan_text_patterns(
     patterns: list[tuple[str, str, str, str]],
 ) -> list[dict[str, object]]:
     results: list[dict[str, object]] = []
+    ignored_suffixes = {".pyc", ".pyo", ".so", ".dll", ".exe", ".class", ".png", ".jpg", ".jpeg", ".gif", ".pdf"}
 
     for file_path in project_path.rglob("*"):
         if not file_path.is_file():
             continue
+        if "__pycache__" in file_path.parts or file_path.suffix.lower() in ignored_suffixes:
+            continue
 
         try:
             content = file_path.read_text(encoding="utf-8")
-        except UnicodeDecodeError:
+        except (OSError, UnicodeDecodeError):
             continue
 
         lowered_content = content.lower()
@@ -48,4 +51,3 @@ def scan_text_patterns(
             )
 
     return results
-

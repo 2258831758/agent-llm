@@ -13,17 +13,32 @@ def run(project_path: Path) -> list[dict[str, object]]:
             continue
 
         try:
-            content = dependency_file.read_text(encoding="utf-8")
-        except UnicodeDecodeError:
+            content = dependency_file.read_text(encoding="utf-8", errors="ignore")
+        except OSError:
             continue
 
         relative_path = dependency_file.relative_to(project_path).as_posix()
         lines = content.splitlines()
 
         vulnerable_markers = [
-            ("requests==2.19.0", "HIGH", "已知漏洞依赖", "requests 2.19.0 存在公开披露的安全问题。"),
-            ("flask==1.0", "MEDIUM", "过期框架依赖", "Flask 1.0 版本过旧，不适合安全敏感场景。"),
-            ('"lodash": "4.17.15"', "HIGH", "已知漏洞依赖", "lodash 4.17.15 关联多个已知安全公告。"),
+            (
+                "requests==2.19.0",
+                "HIGH",
+                "Known Vulnerable Dependency",
+                "requests 2.19.0 存在公开披露的安全问题，建议尽快升级。",
+            ),
+            (
+                "flask==1.0",
+                "MEDIUM",
+                "Outdated Framework Dependency",
+                "Flask 1.0 版本过旧，不适合安全敏感场景。",
+            ),
+            (
+                '"lodash": "4.17.15"',
+                "HIGH",
+                "Known Vulnerable Dependency",
+                "lodash 4.17.15 关联多个公开安全公告。",
+            ),
         ]
 
         lowered_content = content.lower()

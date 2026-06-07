@@ -10,20 +10,20 @@ def run(project_path: Path) -> list[dict[str, object]]:
         (
             "SECRET_KEY",
             "HIGH",
-            "硬编码密钥",
-            "疑似应用密钥被直接写入源码文件。",
+            "Hardcoded Secret Key",
+            "疑似应用密钥被直接写入源代码文件。",
         ),
         (
             "AKIA",
             "HIGH",
-            "AWS 密钥泄露",
-            "仓库中发现了疑似 AWS Access Key 的内容。",
+            "AWS Access Key Exposure",
+            "仓库中发现疑似 AWS Access Key 标识，需立即确认并轮换。",
         ),
         (
             "password =",
             "MEDIUM",
-            "硬编码密码",
-            "账号密码不应直接提交到应用代码中。",
+            "Hardcoded Password",
+            "账号口令不应直接提交到应用代码中。",
         ),
     ]
     return scan_text_patterns(project_path, "Gitleaks", patterns)

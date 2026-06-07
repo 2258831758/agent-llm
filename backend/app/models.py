@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from datetime import datetime, timezone
 from typing import Any
 
@@ -64,7 +65,7 @@ class Finding(Base):
     task: Mapped[AuditTask] = relationship(back_populates="findings")
 
     def as_dict(self) -> dict[str, Any]:
-        return {
+        payload: dict[str, Any] = {
             "id": self.id,
             "source": self.source,
             "severity": self.severity,
@@ -75,3 +76,18 @@ class Finding(Base):
             "cvss_score": self.cvss_score,
         }
 
+        if self.meta_json:
+            try:
+                extra = json.loads(self.meta_json)
+            except json.JSONDecodeError:
+                extra = {"meta_json": self.meta_json}
+            if isinstance(extra, dict):
+                payload.update(extra)
+
+        payload.setdefault("metadata", {})
+        payload.setdefault("reproduction_steps", [])
+        payload.setdefault("related_files", [])
+        payload.setdefault("related_cves", [])
+        payload.setdefault("ctf_scenarios", [])
+        payload.setdefault("references", [])
+        return payload

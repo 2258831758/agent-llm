@@ -10,6 +10,8 @@ class UploadResponse(BaseModel):
     task_id: str
     status: str
     upload_name: str
+    upload_count: int = 1
+    upload_names: list[str] = Field(default_factory=list)
 
 
 class StartAuditRequest(BaseModel):
@@ -30,6 +32,20 @@ class FindingResponse(BaseModel):
     file_path: str
     line_number: int
     cvss_score: float
+    owasp_id: str | None = None
+    owasp_name: str | None = None
+    owasp_label: str | None = None
+    cwe_id: str | None = None
+    impact: str | None = None
+    recommendation: str | None = None
+    reproduction_steps: list[str] = Field(default_factory=list)
+    evidence: str | None = None
+    code_snippet: str | None = None
+    related_files: list[str] = Field(default_factory=list)
+    related_cves: list[str] = Field(default_factory=list)
+    ctf_scenarios: list[str] = Field(default_factory=list)
+    references: list[str] = Field(default_factory=list)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class AuditTaskResponse(BaseModel):
@@ -68,4 +84,3 @@ class SandboxCreateResponse(BaseModel):
     sandbox_id: str
     status: str
     message: str
-

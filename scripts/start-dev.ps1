@@ -10,6 +10,7 @@ $OutputEncoding = [Console]::OutputEncoding
 
 $root = Split-Path -Parent $PSScriptRoot
 $python = Join-Path $root "venv\Scripts\python.exe"
+$frontendRoot = Join-Path $root "frontend"
 $stateFile = Join-Path $PSScriptRoot "dev-processes.json"
 $runtimeDir = Join-Path $root "backend\data\runtime"
 $backendOut = Join-Path $runtimeDir "backend.out.log"
@@ -31,6 +32,10 @@ function Assert-PortFree {
 
 if (-not (Test-Path $python)) {
     throw "Python executable not found: $python"
+}
+
+if (-not (Test-Path (Join-Path $frontendRoot "index.html"))) {
+    throw "Frontend entry not found: $(Join-Path $frontendRoot 'index.html')"
 }
 
 if (Test-Path $stateFile) {
@@ -56,7 +61,7 @@ $frontendArgs = @(
 )
 
 $backend = Start-Process -FilePath $python -ArgumentList $backendArgs -WorkingDirectory $root -PassThru -WindowStyle Hidden -RedirectStandardOutput $backendOut -RedirectStandardError $backendErr
-$frontend = Start-Process -FilePath $python -ArgumentList $frontendArgs -WorkingDirectory $root -PassThru -WindowStyle Hidden -RedirectStandardOutput $frontendOut -RedirectStandardError $frontendErr
+$frontend = Start-Process -FilePath $python -ArgumentList $frontendArgs -WorkingDirectory $frontendRoot -PassThru -WindowStyle Hidden -RedirectStandardOutput $frontendOut -RedirectStandardError $frontendErr
 
 $payload = @{
     backend_pid = $backend.Id

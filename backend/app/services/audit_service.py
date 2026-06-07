@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
@@ -13,6 +14,15 @@ from backend.app.models import AuditTask, Finding, User
 from backend.app.services.events import event_bus
 
 _background_tasks: set[asyncio.Task[None]] = set()
+_FINDING_CORE_FIELDS = {
+    "source",
+    "severity",
+    "title",
+    "description",
+    "file_path",
+    "line_number",
+    "cvss_score",
+}
 
 
 def utcnow() -> datetime:
@@ -51,6 +61,17 @@ def serialize_task(task: AuditTask) -> dict[str, object]:
     }
 
 
+def _serialize_finding_meta(item: dict[str, object]) -> str | None:
+    extra = {
+        key: value
+        for key, value in item.items()
+        if key not in _FINDING_CORE_FIELDS and value not in (None, "", [], {})
+    }
+    if not extra:
+        return None
+    return json.dumps(extra, ensure_ascii=False)
+
+
 async def run_audit_task(task_id: str) -> None:
     db = SessionLocal()
     try:
@@ -62,7 +83,7 @@ async def run_audit_task(task_id: str) -> None:
         task.started_at = utcnow()
         db.commit()
 
-        await event_bus.publish(task_id, {"event": "progress", "value": 5, "message": "审计任务已入队"})
+        await event_bus.publish(task_id, {"event": "progress", "value": 5, "message": "审计任务已进入队列"})
 
         graph = build_audit_graph()
         initial_state = {
@@ -105,6 +126,7 @@ async def run_audit_task(task_id: str) -> None:
                     file_path=str(item["file_path"]),
                     line_number=int(item["line_number"]),
                     cvss_score=float(item["cvss_score"]),
+                    meta_json=_serialize_finding_meta(dict(item)),
                 )
             )
         db.commit()
@@ -123,7 +145,7 @@ async def run_audit_task(task_id: str) -> None:
             task.status = "failed"
             task.finished_at = utcnow()
             db.commit()
-        await event_bus.publish(task_id, {"event": "log", "message": f"审计失败：{exc}"})
+        await event_bus.publish(task_id, {"event": "log", "message": f"审计失败: {exc}"})
     finally:
         db.close()
 

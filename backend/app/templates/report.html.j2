@@ -7,92 +7,225 @@
     <style>
       :root {
         color-scheme: light;
-        --bg: #f5f7fb;
+        --bg: #f3efe7;
+        --paper: #fffaf2;
         --panel: #ffffff;
-        --ink: #162033;
-        --muted: #5f6b85;
-        --line: #dbe3f0;
+        --ink: #23180c;
+        --muted: #6e6457;
+        --line: #e8dcc8;
         --accent: #0f766e;
-        --high: #b91c1c;
-        --medium: #b45309;
-        --low: #2563eb;
+        --accent-soft: #dff6f3;
+        --critical: #8f1d1d;
+        --high: #b42318;
+        --medium: #b54708;
+        --low: #165dff;
+        --shadow: 0 24px 48px rgba(35, 24, 12, 0.08);
+      }
+
+      * {
+        box-sizing: border-box;
       }
 
       body {
         margin: 0;
         font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
-        background: radial-gradient(circle at top, #eef4ff, var(--bg));
         color: var(--ink);
+        background:
+          radial-gradient(circle at top left, rgba(15, 118, 110, 0.18), transparent 28%),
+          radial-gradient(circle at top right, rgba(181, 71, 8, 0.12), transparent 22%),
+          linear-gradient(180deg, #fcf8f3 0%, var(--bg) 100%);
       }
 
       main {
-        max-width: 980px;
-        margin: 40px auto;
-        padding: 0 20px 40px;
+        max-width: 1180px;
+        margin: 32px auto 48px;
+        padding: 0 20px;
       }
 
       .hero,
-      .card {
-        background: var(--panel);
+      .panel,
+      .finding {
+        background: rgba(255, 255, 255, 0.88);
         border: 1px solid var(--line);
-        border-radius: 20px;
-        box-shadow: 0 18px 48px rgba(15, 23, 42, 0.06);
+        border-radius: 24px;
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(12px);
       }
 
       .hero {
         padding: 28px;
-        margin-bottom: 24px;
+        margin-bottom: 20px;
       }
 
-      .meta {
+      .hero h1,
+      h2,
+      h3 {
+        margin-top: 0;
+      }
+
+      .hero p {
+        color: var(--muted);
+        line-height: 1.7;
+      }
+
+      .meta,
+      .stats,
+      .owasp-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
         gap: 14px;
+      }
+
+      .meta,
+      .stats {
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
         margin-top: 20px;
       }
 
-      .metric {
-        padding: 16px;
-        border-radius: 14px;
-        background: #f8fafc;
+      .metric,
+      .owasp-card {
+        padding: 16px 18px;
+        border-radius: 18px;
+        background: var(--paper);
+        border: 1px solid var(--line);
       }
 
-      .label {
+      .metric span,
+      .subtle,
+      .owasp-card p,
+      .finding p,
+      .detail dd {
         color: var(--muted);
-        font-size: 13px;
       }
 
-      .value {
+      .metric strong {
+        display: block;
+        margin-top: 8px;
+        font-size: 28px;
+      }
+
+      .panel {
+        padding: 24px;
+        margin-bottom: 20px;
+      }
+
+      .owasp-grid {
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      }
+
+      .owasp-card.detected {
+        border-color: rgba(180, 35, 24, 0.2);
+        background: rgba(180, 35, 24, 0.05);
+      }
+
+      .owasp-card .count {
         font-size: 26px;
         font-weight: 700;
-        margin-top: 4px;
+        color: var(--accent);
       }
 
-      .card {
+      .finding {
         padding: 22px;
         margin-bottom: 16px;
       }
 
-      .severity {
-        display: inline-block;
+      .finding-header {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+        margin-bottom: 14px;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
         border-radius: 999px;
-        padding: 4px 10px;
+        padding: 6px 12px;
         font-size: 12px;
         font-weight: 700;
         color: white;
       }
 
-      .severity.HIGH,
-      .severity.CRITICAL {
+      .badge.CRITICAL {
+        background: var(--critical);
+      }
+
+      .badge.HIGH {
         background: var(--high);
       }
 
-      .severity.MEDIUM {
+      .badge.MEDIUM {
         background: var(--medium);
       }
 
-      .severity.LOW {
+      .badge.LOW {
         background: var(--low);
+      }
+
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        padding: 6px 12px;
+        background: var(--accent-soft);
+        color: var(--accent);
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .detail {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 14px;
+        margin: 16px 0;
+      }
+
+      .detail div {
+        padding: 14px;
+        border-radius: 18px;
+        background: var(--paper);
+        border: 1px solid var(--line);
+      }
+
+      .detail dt {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--ink);
+      }
+
+      .detail dd {
+        margin: 8px 0 0;
+        line-height: 1.6;
+      }
+
+      pre {
+        padding: 16px;
+        border-radius: 18px;
+        background: #1f1a15;
+        color: #f7ead5;
+        overflow: auto;
+        white-space: pre-wrap;
+        font-family: Consolas, "Courier New", monospace;
+        font-size: 13px;
+      }
+
+      ul {
+        margin: 10px 0 0;
+        padding-left: 20px;
+      }
+
+      li {
+        line-height: 1.7;
+      }
+
+      a {
+        color: var(--accent);
+      }
+
+      @media (max-width: 760px) {
+        main {
+          padding: 0 12px;
+        }
       }
     </style>
   </head>
@@ -100,42 +233,145 @@
     <main>
       <section class="hero">
         <h1>{{ payload.task_name }}</h1>
-        <p>{{ payload.labels.task_id }}: {{ payload.task_id }}</p>
+        <p>{{ payload.report_title }}，已为当前任务补充 OWASP Top 10 分类、复现步骤、代码证据与修复建议。</p>
         <div class="meta">
           <div class="metric">
-            <div class="label">{{ payload.labels.language }}</div>
-            <div class="value">{{ payload.language or "未知" }}</div>
+            <span>{{ payload.labels.task_id }}</span>
+            <strong>{{ payload.task_id }}</strong>
           </div>
           <div class="metric">
-            <div class="label">{{ payload.labels.framework }}</div>
-            <div class="value">{{ payload.framework or "未知" }}</div>
+            <span>{{ payload.labels.language }}</span>
+            <strong>{{ payload.language }}</strong>
           </div>
           <div class="metric">
-            <div class="label">{{ payload.labels.total }}</div>
-            <div class="value">{{ payload.summary.total }}</div>
+            <span>{{ payload.labels.framework }}</span>
+            <strong>{{ payload.framework }}</strong>
           </div>
           <div class="metric">
-            <div class="label">{{ payload.labels.high }}</div>
-            <div class="value">{{ payload.summary.high }}</div>
+            <span>生成时间</span>
+            <strong>{{ payload.generated_at }}</strong>
+          </div>
+        </div>
+        <div class="stats">
+          <div class="metric">
+            <span>{{ payload.labels.total }}</span>
+            <strong>{{ payload.summary.total }}</strong>
+          </div>
+          <div class="metric">
+            <span>{{ payload.labels.critical }}</span>
+            <strong>{{ payload.summary.critical }}</strong>
+          </div>
+          <div class="metric">
+            <span>{{ payload.labels.high }}</span>
+            <strong>{{ payload.summary.high }}</strong>
+          </div>
+          <div class="metric">
+            <span>{{ payload.labels.medium }}</span>
+            <strong>{{ payload.summary.medium }}</strong>
           </div>
         </div>
       </section>
 
-      {% for item in payload.findings %}
-      <section class="card">
-        <span class="severity {{ item.severity }}">{{ item.severity_label }}</span>
-        <h2>{{ item.title }}</h2>
-        <p>{{ item.description }}</p>
-        <p><strong>{{ payload.labels.source }}：</strong> {{ item.source }}</p>
-        <p><strong>{{ payload.labels.location }}：</strong> {{ item.file_path }}:{{ item.line_number }}</p>
-        <p><strong>CVSS：</strong> {{ item.cvss_score }}</p>
+      <section class="panel">
+        <h2>OWASP Top 10 覆盖</h2>
+        <div class="owasp-grid">
+          {% for item in payload.top10_summary %}
+          <article class="owasp-card {{ item.status }}">
+            <div class="chip">{{ item.owasp_id }}</div>
+            <h3>{{ item.owasp_name_zh }}</h3>
+            <p>{{ item.summary }}</p>
+            <div class="count">{{ item.count }}</div>
+          </article>
+          {% endfor %}
+        </div>
       </section>
-      {% else %}
-      <section class="card">
-        <h2>未发现漏洞</h2>
-        <p>本次扫描未识别到有效风险项。</p>
+
+      <section class="panel">
+        <h2>漏洞详情</h2>
+        {% for item in payload.findings %}
+        <article class="finding">
+          <div class="finding-header">
+            <span class="badge {{ item.severity }}">{{ item.severity_label }}</span>
+            <span class="chip">{{ item.owasp_label or "未分类" }}</span>
+            <span class="chip">{{ item.source }}</span>
+          </div>
+          <h3>{{ item.title }}</h3>
+          <p>{{ item.description }}</p>
+
+          <dl class="detail">
+            <div>
+              <dt>{{ payload.labels.location }}</dt>
+              <dd>{{ item.file_path }}:{{ item.line_number }}</dd>
+            </div>
+            <div>
+              <dt>CWE</dt>
+              <dd>{{ item.cwe_id or "N/A" }}</dd>
+            </div>
+            <div>
+              <dt>CVSS</dt>
+              <dd>{{ item.cvss_score }}</dd>
+            </div>
+            <div>
+              <dt>{{ payload.labels.evidence }}</dt>
+              <dd>{{ item.evidence or "未提供额外扫描证据" }}</dd>
+            </div>
+            <div>
+              <dt>{{ payload.labels.related_files }}</dt>
+              <dd>{{ item.related_files|join(", ") if item.related_files else "无" }}</dd>
+            </div>
+            <div>
+              <dt>{{ payload.labels.related_cves }}</dt>
+              <dd>{{ item.related_cves|join(", ") if item.related_cves else "通用代码缺陷，需结合具体组件版本映射 CVE" }}</dd>
+            </div>
+            <div>
+              <dt>{{ payload.labels.impact }}</dt>
+              <dd>{{ item.impact }}</dd>
+            </div>
+            <div>
+              <dt>{{ payload.labels.recommendation }}</dt>
+              <dd>{{ item.recommendation }}</dd>
+            </div>
+          </dl>
+
+          {% if item.code_snippet %}
+          <h4>代码片段</h4>
+          <pre>{{ item.code_snippet }}</pre>
+          {% endif %}
+
+          {% if item.reproduction_steps %}
+          <h4>{{ payload.labels.reproduction }}</h4>
+          <ul>
+            {% for step in item.reproduction_steps %}
+            <li>{{ step }}</li>
+            {% endfor %}
+          </ul>
+          {% endif %}
+
+          {% if item.ctf_scenarios %}
+          <h4>{{ payload.labels.ctf }}</h4>
+          <ul>
+            {% for scenario in item.ctf_scenarios %}
+            <li>{{ scenario }}</li>
+            {% endfor %}
+          </ul>
+          {% endif %}
+
+          {% if item.references %}
+          <h4>{{ payload.labels.references }}</h4>
+          <ul>
+            {% for reference in item.references %}
+            <li><a href="{{ reference }}" target="_blank" rel="noreferrer">{{ reference }}</a></li>
+            {% endfor %}
+          </ul>
+          {% endif %}
+        </article>
+        {% else %}
+        <article class="finding">
+          <h3>未发现有效漏洞</h3>
+          <p>本次扫描没有识别到需要进一步确认的风险项。</p>
+        </article>
+        {% endfor %}
       </section>
-      {% endfor %}
     </main>
   </body>
 </html>

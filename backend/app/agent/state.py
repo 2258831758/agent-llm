@@ -13,6 +13,18 @@ class AuditFinding(TypedDict, total=False):
     file_path: str
     line_number: int
     cvss_score: float
+    owasp_id: str
+    owasp_name: str
+    owasp_label: str
+    cwe_id: str
+    impact: str
+    recommendation: str
+    reproduction_steps: list[str]
+    evidence: str
+    code_snippet: str
+    related_cves: list[str]
+    ctf_scenarios: list[str]
+    references: list[str]
     metadata: dict[str, Any]
 
 
@@ -32,4 +44,3 @@ class AuditState(TypedDict):
     report_paths: dict[str, str]
     status: str
     logs: list[str]
-
