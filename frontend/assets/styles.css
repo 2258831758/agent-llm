@@ -456,19 +456,10 @@ button:disabled {
   padding-left: 18px;
 }
 
-.report-links {
+.report-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  margin-bottom: 14px;
-}
-
-.report-frame {
-  width: 100%;
-  min-height: 480px;
-  border: 1px solid var(--line);
-  border-radius: 18px;
-  background: white;
 }
 
 @media (max-width: 1160px) {

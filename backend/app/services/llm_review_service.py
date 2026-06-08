@@ -11,6 +11,11 @@ import httpx
 
 from backend.app.agent.state import AuditFinding
 from backend.app.core.config import settings
+from backend.app.services.code_security_skill import (
+    CodeSecuritySkillResources,
+    apply_hard_exclusion_filters,
+    load_code_security_skill_resources,
+)
 
 
 SOURCE_SUFFIXES = {
@@ -544,6 +549,16 @@ def _serialize_scan_results(scan_results: list[AuditFinding]) -> str:
     return "\n".join(rows)
 
 
+def _serialize_excluded_scan_summaries(excluded_scan_summaries: list[dict[str, Any]]) -> str:
+    rows: list[str] = []
+    for item in excluded_scan_summaries[:10]:
+        rows.append(
+            f"- {item.get('title', '')} @ {item.get('file_path', '')} "
+            f"(reason={item.get('reason', 'hard exclusion')})"
+        )
+    return "\n".join(rows)
+
+
 def _build_user_prompt(
     *,
     task_name: str,
@@ -552,6 +567,8 @@ def _build_user_prompt(
     entrypoint: str,
     scan_results: list[AuditFinding],
     context_memory: ReviewContextMemory,
+    resources: CodeSecuritySkillResources,
+    excluded_scan_summaries: list[dict[str, Any]],
 ) -> str:
     relationship_notes = "\n".join(f"- {note}" for note in context_memory.relationship_notes) or "- none"
     file_blocks = "\n\n".join(
@@ -571,14 +588,17 @@ def _build_user_prompt(
     )
 
     return (
-        "You are reviewing a whole project, not isolated files.\n"
+        "Follow the bundled Code Security Review skill exactly.\n"
+        "Execute the workflow strictly in order: Phase 1 audit, Phase 2 filter, then Phase 3 report.\n"
         "Treat the provided files as one linked code context and trace data flow across file boundaries.\n"
-        "Focus on routes, input validation, authorization checks, helper functions, database access, shell execution, SSRF, deserialization, and dangerous sinks.\n"
-        "Return exactly one JSON object with this shape: {\"findings\": [...]}.\n"
+        "Do not keep any finding that violates the hard exclusions or has confidence_score < 7.\n"
+        "Return exactly one JSON object with this shape: {\"findings\": [...], \"filter_summary\": [...]}.\n"
+        "Only include KEPT findings in findings.\n"
         "Each finding must contain: severity,title,description,file_path,line_number,owasp_id,cwe_id,impact,recommendation,"
-        "reproduction_steps,evidence,related_files,related_cves,ctf_scenarios,references.\n"
+        "reproduction_steps,evidence,related_files,related_cves,ctf_scenarios,references,confidence_score,category,attack_path.\n"
+        "Each filter_summary item must contain: title,file_path,decision,confidence_score,reason,hard_exclusion,precedent_hit,concrete_attack_path.\n"
         "If a finding spans multiple files, set file_path to the most security-critical file/line and list the rest in related_files.\n"
-        "Write description, impact, recommendation, reproduction_steps, and evidence in Chinese.\n"
+        "Write description, impact, recommendation, reproduction_steps, evidence, and attack_path in Chinese.\n"
         "Return at most "
         f"{settings.llm_max_findings} findings with strong exploitability value.\n\n"
         f"Task Name: {task_name}\n"
@@ -586,12 +606,20 @@ def _build_user_prompt(
         f"Framework: {framework or 'unknown'}\n"
         f"Entrypoint: {entrypoint or 'unknown'}\n"
         f"Context Memory Summary: {context_memory.summary}\n\n"
-        "Static Scan Findings:\n"
+        "Static Scan Findings After Local Hard Exclusions:\n"
         f"{_serialize_scan_results(scan_results) or '- none'}\n\n"
+        "Static Scan Findings Excluded By Local Hard Rules:\n"
+        f"{_serialize_excluded_scan_summaries(excluded_scan_summaries) or '- none'}\n\n"
         "Cross-File Relationships:\n"
         f"{relationship_notes}\n\n"
         "Relevant Linked Code Context:\n"
-        f"{file_blocks or 'No code context available.'}\n"
+        f"{file_blocks or 'No code context available.'}\n\n"
+        "Bundled Audit Methodology:\n"
+        f"```text\n{resources.audit_prompt}\n```\n\n"
+        "Bundled Filtering Rules:\n"
+        f"```text\n{resources.filtering_rules}\n```\n\n"
+        "Bundled Hard Exclusion Patterns:\n"
+        f"```text\n{resources.hard_exclusion_patterns}\n```\n"
     )
 
 
@@ -630,6 +658,13 @@ def _extract_response_text(payload: dict[str, Any]) -> str:
     return content.strip() if isinstance(content, str) else ""
 
 
+def _coerce_int(raw_value: Any, default: int = 0) -> int:
+    try:
+        return int(float(raw_value))
+    except (TypeError, ValueError):
+        return default
+
+
 def _normalize_string_list(raw_value: Any) -> list[str]:
     if isinstance(raw_value, str):
         items = [part.strip() for part in raw_value.split(",")]
@@ -639,7 +674,37 @@ def _normalize_string_list(raw_value: Any) -> list[str]:
     return []
 
 
-def _normalize_findings(raw_findings: list[dict[str, Any]]) -> list[AuditFinding]:
+def _normalize_filter_summary(raw_filter_summary: Any) -> list[dict[str, Any]]:
+    if not isinstance(raw_filter_summary, list):
+        return []
+
+    normalized: list[dict[str, Any]] = []
+    for item in raw_filter_summary:
+        if not isinstance(item, dict):
+            continue
+        normalized.append(
+            {
+                "title": str(item.get("title", "")).strip(),
+                "file_path": str(item.get("file_path", "")).strip(),
+                "decision": str(item.get("decision", "")).upper().strip(),
+                "confidence_score": _coerce_int(item.get("confidence_score"), 0),
+                "reason": str(item.get("reason", "")).strip(),
+                "hard_exclusion": str(item.get("hard_exclusion", "")).strip(),
+                "precedent_hit": str(item.get("precedent_hit", "")).strip(),
+                "concrete_attack_path": bool(item.get("concrete_attack_path", False)),
+            }
+        )
+    return normalized
+
+
+def _normalize_findings(
+    raw_findings: list[dict[str, Any]],
+    filter_summary: list[dict[str, Any]],
+) -> list[AuditFinding]:
+    filter_summary_index = {
+        (str(item.get("title", "")).strip(), str(item.get("file_path", "")).strip()): item
+        for item in filter_summary
+    }
     normalized: list[AuditFinding] = []
     for raw_item in raw_findings[: settings.llm_max_findings]:
         file_path = str(raw_item.get("file_path", "")).strip()
@@ -647,6 +712,7 @@ def _normalize_findings(raw_findings: list[dict[str, Any]]) -> list[AuditFinding
         if not file_path or not title:
             continue
 
+        filter_item = filter_summary_index.get((title, file_path), {})
         severity = str(raw_item.get("severity", "MEDIUM")).upper()
         if severity not in {"CRITICAL", "HIGH", "MEDIUM", "LOW"}:
             severity = "MEDIUM"
@@ -656,6 +722,16 @@ def _normalize_findings(raw_findings: list[dict[str, Any]]) -> list[AuditFinding
         ctf_scenarios = _normalize_string_list(raw_item.get("ctf_scenarios"))
         reproduction_steps = _normalize_string_list(raw_item.get("reproduction_steps"))
         references = _normalize_string_list(raw_item.get("references"))
+        confidence_score = _coerce_int(
+            raw_item.get("confidence_score"),
+            _coerce_int(filter_item.get("confidence_score"), 7),
+        )
+        if confidence_score < 7:
+            continue
+        category = str(raw_item.get("category", "")).strip()
+        attack_path = str(raw_item.get("attack_path", raw_item.get("exploit_scenario", ""))).strip()
+        evidence = str(raw_item.get("evidence", "")).strip() or attack_path
+        filter_reason = str(filter_item.get("reason", "")).strip()
 
         normalized.append(
             {
@@ -671,7 +747,7 @@ def _normalize_findings(raw_findings: list[dict[str, Any]]) -> list[AuditFinding
                 "impact": str(raw_item.get("impact", "")).strip(),
                 "recommendation": str(raw_item.get("recommendation", "")).strip(),
                 "reproduction_steps": reproduction_steps,
-                "evidence": str(raw_item.get("evidence", "")).strip(),
+                "evidence": evidence,
                 "related_files": related_files,
                 "related_cves": related_cves,
                 "ctf_scenarios": ctf_scenarios,
@@ -681,6 +757,11 @@ def _normalize_findings(raw_findings: list[dict[str, Any]]) -> list[AuditFinding
                     "model": settings.deepseek_model,
                     "provider": "deepseek",
                     "cross_file": bool(related_files),
+                    "review_skill": "code-security-review",
+                    "confidence_score": confidence_score,
+                    "category": category,
+                    "attack_path": attack_path,
+                    "filter_reason": filter_reason,
                 },
             }
         )
@@ -704,17 +785,20 @@ async def review_project_with_llm(
     if not settings.deepseek_api_key:
         return [], "DEEPSEEK_API_KEY is not configured"
 
+    resources = load_code_security_skill_resources()
+    filtered_scan_results, excluded_scan_summaries = apply_hard_exclusion_filters(scan_results)
     context_memory = build_review_context_memory(
         project_path=project_path,
         entrypoint=entrypoint,
-        scan_results=scan_results,
+        scan_results=filtered_scan_results,
     )
     if not context_memory.files:
         return [], "No usable cross-file context was collected for the model"
 
     system_prompt = (
         "You are a senior application security reviewer. "
-        "Review whole-project behavior across files. "
+        "Use the bundled Code Security Review skill. "
+        "Complete audit, filter, and report phases in sequence. "
         "Return valid JSON only. "
         "Use accurate vulnerability names and CWE/OWASP identifiers when possible."
     )
@@ -723,8 +807,10 @@ async def review_project_with_llm(
         language=language,
         framework=framework,
         entrypoint=entrypoint,
-        scan_results=scan_results,
+        scan_results=filtered_scan_results,
         context_memory=context_memory,
+        resources=resources,
+        excluded_scan_summaries=excluded_scan_summaries,
     )
     payload = _build_request_payload(system_prompt, user_prompt, user_id or task_id)
 
@@ -751,9 +837,23 @@ async def review_project_with_llm(
     if not isinstance(raw_findings, list):
         return [], "DeepSeek returned an invalid findings payload"
 
-    findings = _normalize_findings(raw_findings)
+    filter_summary = _normalize_filter_summary(parsed.get("filter_summary", []))
+    findings = _normalize_findings(raw_findings, filter_summary)
+    findings, excluded_model_findings = apply_hard_exclusion_filters(findings)
+    excluded_summary_count = sum(1 for item in filter_summary if item.get("decision") == "EXCLUDE")
+    message_bits = [
+        "Code security skill review completed with "
+        f"{len(context_memory.files)} linked context files",
+        f"{len(findings)} kept findings",
+    ]
+    if filter_summary:
+        message_bits.append(f"{len(filter_summary)} reviewed candidates")
+    if excluded_summary_count or excluded_scan_summaries or excluded_model_findings:
+        message_bits.append(
+            "local/global exclusions="
+            f"{excluded_summary_count + len(excluded_scan_summaries) + len(excluded_model_findings)}"
+        )
     return (
         findings,
-        "DeepSeek review completed with "
-        f"{len(context_memory.files)} linked context files and {len(findings)} findings",
+        ", ".join(message_bits),
     )

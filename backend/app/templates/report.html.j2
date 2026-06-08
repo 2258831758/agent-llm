@@ -204,7 +204,9 @@
         background: #1f1a15;
         color: #f7ead5;
         overflow: auto;
+        max-height: 420px;
         white-space: pre-wrap;
+        word-break: break-word;
         font-family: Consolas, "Courier New", monospace;
         font-size: 13px;
       }
@@ -268,6 +270,10 @@
           <div class="metric">
             <span>{{ payload.labels.medium }}</span>
             <strong>{{ payload.summary.medium }}</strong>
+          </div>
+          <div class="metric">
+            <span>{{ payload.labels.low }}</span>
+            <strong>{{ payload.summary.low }}</strong>
           </div>
         </div>
       </section>

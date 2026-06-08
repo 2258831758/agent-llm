@@ -297,14 +297,12 @@ function renderReports(taskId) {
   const markdownUrl = `${apiBase()}/report/${taskId}?format=markdown`;
   const jsonUrl = `${apiBase()}/report/${taskId}?format=json`;
 
-  elements.reportWrap.className = "";
+  elements.reportWrap.hidden = false;
+  elements.reportWrap.className = "report-actions";
   elements.reportWrap.innerHTML = `
-    <div class="report-links">
-      <a class="link-button ghost" href="${htmlUrl}" target="_blank" rel="noreferrer">打开 HTML 报告</a>
-      <a class="link-button ghost" href="${markdownUrl}" target="_blank" rel="noreferrer">下载 Markdown</a>
-      <a class="link-button ghost" href="${jsonUrl}" target="_blank" rel="noreferrer">下载 JSON</a>
-    </div>
-    <iframe class="report-frame" src="${htmlUrl}" title="Audit Report Preview"></iframe>
+    <a class="link-button ghost" href="${htmlUrl}" download="report.html">下载 HTML 报告</a>
+    <a class="link-button ghost" href="${markdownUrl}" download="report.md">下载 Markdown</a>
+    <a class="link-button ghost" href="${jsonUrl}" download="report.json">下载 JSON</a>
   `;
 }
 
@@ -358,8 +356,9 @@ function rememberTask(taskId, status) {
   state.taskStatus = status;
   state.progress = 0;
   renderFindings([]);
-  elements.reportWrap.className = "empty";
-  elements.reportWrap.innerHTML = "任务完成后，这里会展示 HTML / Markdown / JSON 报告。";
+  elements.reportWrap.hidden = true;
+  elements.reportWrap.className = "";
+  elements.reportWrap.innerHTML = "";
   setTaskMeta();
 }
 

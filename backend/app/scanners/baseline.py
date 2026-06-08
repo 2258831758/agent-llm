@@ -2,6 +2,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+import re
+
+from backend.app.scanners.utils import should_skip_text_scan
 
 
 COMMON_SOURCE_TOKENS = (
@@ -219,6 +222,17 @@ def _window_text(lines: list[str], index: int, radius: int) -> str:
     return "\n".join(lines[start:end]).lower()
 
 
+def _token_present(text: str, token: str) -> bool:
+    normalized = token.lower()
+    if any(char for char in normalized if not (char.isalnum() or char == "_")):
+        return normalized in text
+    return re.search(rf"(?<![a-z0-9_]){re.escape(normalized)}(?![a-z0-9_])", text) is not None
+
+
+def _contains_any_token(text: str, tokens: tuple[str, ...]) -> bool:
+    return any(_token_present(text, token) for token in tokens)
+
+
 def _build_finding(
     *,
     rule: BaselineRule,
@@ -261,6 +275,8 @@ def run(project_path: Path) -> list[dict[str, object]]:
             content = file_path.read_text(encoding="utf-8", errors="ignore")
         except OSError:
             continue
+        if should_skip_text_scan(file_path, content):
+            continue
 
         lines = content.splitlines()
         lowered_lines = [line.lower() for line in lines]
@@ -282,14 +298,14 @@ def run(project_path: Path) -> list[dict[str, object]]:
 
                 window = _window_text(lines, index - 1, rule.window_radius)
                 if rule.rule_id == "xss-php-output":
-                    if any(token.lower() in window for token in rule.sanitizer_tokens):
+                    if _contains_any_token(window, rule.sanitizer_tokens):
                         continue
                 else:
-                    if rule.source_tokens and not any(token.lower() in window for token in rule.source_tokens):
+                    if rule.source_tokens and not _contains_any_token(window, rule.source_tokens):
                         continue
-                    if rule.required_context_tokens and not any(token.lower() in window for token in rule.required_context_tokens):
+                    if rule.required_context_tokens and not _contains_any_token(window, rule.required_context_tokens):
                         continue
-                    if rule.sanitizer_tokens and any(token.lower() in window for token in rule.sanitizer_tokens):
+                    if rule.sanitizer_tokens and _contains_any_token(window, rule.sanitizer_tokens):
                         continue
 
                 results.append(

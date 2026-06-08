@@ -75,7 +75,7 @@ def _derive_llm_findings(scan_results: list[AuditFinding]) -> list[AuditFinding]
 
 
 async def run(state: AuditState) -> dict[str, object]:
-    await publish_agent_state(state["task_id"], "LLMReview", "running", "正在调用大模型进行语义审计", 75)
+    await publish_agent_state(state["task_id"], "LLMReview", "running", "正在调用代码安全审计 skill 进行语义审计与过滤", 75)
 
     try:
         llm_results, message = await review_project_with_llm(

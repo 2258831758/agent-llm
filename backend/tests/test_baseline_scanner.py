@@ -4,8 +4,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from backend.app.scanners import baseline
-from backend.app.services.vulnerability_catalog import enrich_finding
+from backend.app.scanners import baseline, gitleaks
+from backend.app.services.vulnerability_catalog import enrich_finding, extract_code_snippet
 
 
 class BaselineScannerTests(unittest.TestCase):
@@ -50,6 +50,65 @@ class BaselineScannerTests(unittest.TestCase):
 
             findings = baseline.run(project_path)
             self.assertTrue(any(item["title"] == "Potential Path Traversal / File Inclusion" for item in findings))
+
+    def test_does_not_match_file_substring_inside_profile_filename(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project_path = Path(temp_dir)
+            (project_path / "index.php").write_text(
+                "<?php\nrequire_once('class.php');\nheader('Location: profile.php');\n",
+                encoding="utf-8",
+            )
+
+            findings = baseline.run(project_path)
+
+        self.assertFalse(any(item["title"] == "Potential Path Traversal / File Inclusion" for item in findings))
+
+    def test_skips_minified_vendor_like_assets(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project_path = Path(temp_dir)
+            (project_path / "jquery.min.js").write_text(
+                "function x(){return /a/.exec(location.search)};" * 400,
+                encoding="utf-8",
+            )
+
+            findings = baseline.run(project_path)
+
+        self.assertEqual(findings, [])
+
+    def test_gitleaks_ignores_password_variables_from_request_data(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project_path = Path(temp_dir)
+            (project_path / "index.php").write_text(
+                "<?php\n$password = $_POST['password'];\n$pwd = $_REQUEST['pwd'];\n",
+                encoding="utf-8",
+            )
+
+            findings = gitleaks.run(project_path)
+
+        self.assertEqual(findings, [])
+
+    def test_gitleaks_detects_literal_password_assignment(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project_path = Path(temp_dir)
+            (project_path / "config.php").write_text(
+                "<?php\n$password = 'admin1234';\n",
+                encoding="utf-8",
+            )
+
+            findings = gitleaks.run(project_path)
+
+        self.assertTrue(any(item["title"] == "Hardcoded Password" for item in findings))
+
+    def test_extract_code_snippet_truncates_minified_assets(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project_path = Path(temp_dir)
+            (project_path / "static").mkdir()
+            file_path = project_path / "static" / "app.min.js"
+            file_path.write_text("var a='" + ("x" * 6000) + "';", encoding="utf-8")
+
+            snippet = extract_code_snippet(project_path, "static/app.min.js", 1)
+
+        self.assertIn("压缩/第三方静态资源已省略长行预览", snippet)
 
 
 if __name__ == "__main__":
